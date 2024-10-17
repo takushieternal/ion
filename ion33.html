@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Ion and Compound Formation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        .ion-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #fff;
+            width: 800px;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ion-animation {
+            text-align: center;
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .nucleus {
+            width: 100px;
+            height: 100px;
+            background-color: yellow;
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .electron {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            position: absolute;
+            background-color: blue;
+            animation: orbit linear infinite;
+            transform-origin: center;
+        }
+
+        .proton {
+            background-color: red;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            position: absolute;
+            animation: subtleOscillation 3s infinite;
+        }
+
+        .neutron {
+            background-color: green;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            position: absolute;
+            animation: subtleOscillation 3s infinite;
+        }
+
+        @keyframes subtleOscillation {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(3px, 3px); }
+            100% { transform: translate(0, 0); }
+        }
+
+@keyframes orbit {
+    0% {
+        transform: rotateZ(0deg) translateX(var(--orbit-radius)) rotateZ(0deg);
+    }
+    100% {
+        transform: rotateZ(360deg) translateX(var(--orbit-radius)) rotateZ(-360deg);
+    }
+}
+
+@keyframes orbit3D {
+    0% {
+        transform: rotateX(0deg) rotateY(0deg) translateZ(var(--orbit-radius));
+    }
+    100% {
+        transform: rotateX(360deg) rotateY(360deg) translateZ(var(--orbit-radius));
+    }
+}
+
+
+        #periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            grid-gap: 5px;
+            margin-top: 50px;
+            width: 80%;
+            overflow-y: scroll;
+        }
+
+        .element {
+            background-color: #ddd;
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .controls {
+            margin-top: 20px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Interactive Ion System with Compound Formation</h2>
+
+<div class="controls">
+    <button id="add-ion-button">Add New Ion</button>
+    <button id="form-compound-button">Form Compound</button>
+</div>
+
+<div id="ions-container"></div>
+
+<div id="periodic-table"></div>
+
+<script>
+    let ions = [];
+    let selectedIonId = null;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("add-ion-button").addEventListener("click", createNewIon);
+        document.getElementById("form-compound-button").addEventListener("click", formCompound);
+        generatePeriodicTable();
+    });
+
+function addElectron(ionId) {
+    ions[ionId].electrons++;
+    ions[ionId].charge--;
+    updateIonInfo(ionId); // Ensure the info and visualization are updated
+}
+
+function removeElectron(ionId) {
+    if (ions[ionId].electrons > 0) {
+        ions[ionId].electrons--;
+        ions[ionId].charge++;
+        updateIonInfo(ionId); // Ensure the info and visualization are updated
+    }
+}
+
+function addProton(ionId) {
+    ions[ionId].protons++;
+    ions[ionId].charge++;
+    updateIonInfo(ionId); // Ensure the info and visualization are updated
+}
+
+function removeProton(ionId) {
+    if (ions[ionId].protons > 0) {
+        ions[ionId].protons--;
+        ions[ionId].charge--;
+        updateIonInfo(ionId); // Ensure the info and visualization are updated
+    }
+}
+
+function addNeutron(ionId) {
+    ions[ionId].neutrons++;
+    updateIonInfo(ionId); // Ensure the info and visualization are updated
+}
+
+function removeNeutron(ionId) {
+    if (ions[ionId].neutrons > 0) {
+        ions[ionId].neutrons--;
+        updateIonInfo(ionId); // Ensure the info and visualization are updated
+    }
+}
+
+
+    function createNewIon() {
+        const ionId = ions.length;
+        const newIon = {
+            id: ionId,
+            protons: 1,
+            neutrons: 0,
+            electrons: 1,
+            charge: 0,
+            elementName: 'Hydrogen',
+            elementFamily: 'Nonmetal',
+        };
+        ions.push(newIon);
+
+        const ionContainer = document.createElement('div');
+        ionContainer.className = 'ion-container';
+        ionContainer.id = `ion-${ionId}`;
+        ionContainer.innerHTML = `
+            <div>
+                <input type="checkbox" id="compound-checkbox-${ionId}"> 
+                <label for="compound-checkbox-${ionId}">Add to Compound Mix</label>
+                <h3><input type="radio" name="selected-ion" onclick="selectIon(${ionId})" value="${ionId}"> Ion ${ionId + 1}</h3>
+                <div id="ion-animation-${ionId}" class="ion-animation">
+                    <div class="nucleus" id="nucleus-${ionId}"></div>
+                </div>
+            </div>
+            <div>
+                <div class="controls">
+                    <button onclick="addElectron(${ionId})">Add Electron</button>
+                    <button onclick="removeElectron(${ionId})">Remove Electron</button>
+                    <button onclick="addProton(${ionId})">Add Proton</button>
+                    <button onclick="removeProton(${ionId})">Remove Proton</button>
+                    <button onclick="addNeutron(${ionId})">Add Neutron</button>
+                    <button onclick="removeNeutron(${ionId})">Remove Neutron</button>
+                </div>
+                <div id="ion-info-${ionId}">
+                    <p>Element: <span id="element-name-${ionId}">${newIon.elementName}</span></p>
+                    <p>Family: <span id="element-family-${ionId}">${newIon.elementFamily}</span></p>
+                    <p>Protons: <span id="proton-count-${ionId}">1</span></p>
+                    <p>Neutrons: <span id="neutron-count-${ionId}">0</span></p>
+                    <p>Electrons: <span id="electron-count-${ionId}">1</span></p>
+                    <p>Charge: <span id="charge-${ionId}">0</span></p>
+                </div>
+            </div>
+        `;
+        document.getElementById('ions-container').appendChild(ionContainer);
+        updateIonInfo(ionId);
+    }
+
+    function updateIonInfo(ionId) {
+        const ion = ions[ionId];
+        document.getElementById(`proton-count-${ionId}`).innerText = ion.protons;
+        document.getElementById(`neutron-count-${ionId}`).innerText = ion.neutrons;
+        document.getElementById(`electron-count-${ionId}`).innerText = ion.electrons;
+        document.getElementById(`charge-${ionId}`).innerText = ion.charge;
+
+        const nucleus = document.getElementById(`nucleus-${ionId}`);
+        if (ion.charge === 0) {
+            nucleus.style.backgroundColor = 'yellow';
+        } else if (ion.charge > 0) {
+            nucleus.style.backgroundColor = 'orange';
+        } else {
+            nucleus.style.backgroundColor = 'purple';
+        }
+
+        const foundElement = elements.find(el => el.number === ion.protons);
+        if (foundElement) {
+            ion.elementName = foundElement.name;
+            ion.elementFamily = foundElement.family;
+            document.getElementById(`element-name-${ionId}`).innerText = ion.elementName;
+            document.getElementById(`element-family-${ionId}`).innerText = ion.elementFamily;
+        } else {
+            ion.elementName = 'Unknown';
+            ion.elementFamily = 'Unknown';
+            document.getElementById(`element-name-${ionId}`).innerText = ion.elementName;
+            document.getElementById(`element-family-${ionId}`).innerText = ion.elementFamily;
+        }
+
+        updateAnimation(ionId);
+    }
+function updateCompoundAnimation(compoundContainer, totalProtons, totalNeutrons, totalElectrons, netCharge) {
+    const nucleus = compoundContainer.querySelector('.nucleus');
+    nucleus.style.width = '150px';
+    nucleus.style.height = '150px';
+    nucleus.style.backgroundColor = netCharge === 0 ? 'yellow' : (netCharge > 0 ? 'orange' : 'purple');
+
+    nucleus.innerHTML = ''; // Clear previous protons and neutrons
+
+    // Distribute protons and neutrons randomly inside the nucleus, same as the ion
+    const totalParticles = totalProtons + totalNeutrons;
+    const radius = 40; // Adjust for spacing within the nucleus
+
+    for (let i = 0; i < totalProtons; i++) {
+        const proton = document.createElement('div');
+        proton.className = 'proton';
+        const position = getRandomPositionInCircle(radius);
+        proton.style.position = 'absolute';
+        proton.style.top = `${position.y + radius}px`;
+        proton.style.left = `${position.x + radius}px`;
+        nucleus.appendChild(proton);
+    }
+
+    for (let i = 0; i < totalNeutrons; i++) {
+        const neutron = document.createElement('div');
+        neutron.className = 'neutron';
+        const position = getRandomPositionInCircle(radius);
+        neutron.style.position = 'absolute';
+        neutron.style.top = `${position.y + radius}px`;
+        neutron.style.left = `${position.x + radius}px`;
+        nucleus.appendChild(neutron);
+    }
+
+    const animation = compoundContainer.querySelector('.ion-animation');
+    animation.querySelectorAll('.electron').forEach(electron => electron.remove());
+
+    // Add electrons orbiting around the nucleus with 3D effect, similar to individual ion
+    const shellDistances = [70, 100, 130]; // Example shell distances for the compound
+    let electronsPerShell = [2, 8, 18]; // Max electrons per shell
+    let electronCount = totalElectrons;
+
+    for (let shell = 0; shell < shellDistances.length && electronCount > 0; shell++) {
+        const electronsInThisShell = Math.min(electronCount, electronsPerShell[shell]);
+
+        for (let i = 0; i < electronsInThisShell; i++) {
+            const electron = document.createElement('div');
+            electron.className = 'electron';
+            electron.style.setProperty('--orbit-radius', `${shellDistances[shell]}px`);
+            electron.style.animation = `orbit3D ${Math.random() * 4 + 3}s linear infinite`;
+            electron.style.animationDelay = `${Math.random()}s`;
+
+            animation.appendChild(electron);
+        }
+        electronCount -= electronsInThisShell;
+    }
+}
+
+function updateAnimation(ionId) {
+    const ion = ions[ionId];
+    const nucleus = document.getElementById(`nucleus-${ionId}`);
+    nucleus.innerHTML = ''; // Clear previous protons and neutrons
+
+    const numProtons = ion.protons;
+    const numNeutrons = ion.neutrons;
+    const radius = 40; // Adjust this value for the size of the nucleus
+
+    // Distribute protons and neutrons randomly inside the nucleus
+    for (let i = 0; i < numProtons; i++) {
+        const proton = document.createElement('div');
+        proton.className = 'proton';
+        const position = getRandomPositionInCircle(radius);
+        proton.style.position = 'absolute';
+        proton.style.top = `${position.y + radius}px`;
+        proton.style.left = `${position.x + radius}px`;
+        nucleus.appendChild(proton);
+    }
+
+    for (let i = 0; i < numNeutrons; i++) {
+        const neutron = document.createElement('div');
+        neutron.className = 'neutron';
+        const position = getRandomPositionInCircle(radius);
+        neutron.style.position = 'absolute';
+        neutron.style.top = `${position.y + radius}px`;
+        neutron.style.left = `${position.x + radius}px`;
+        nucleus.appendChild(neutron);
+    }
+
+    // Ensure electrons are added properly
+    const animation = document.getElementById(`ion-animation-${ionId}`);
+    animation.querySelectorAll('.electron').forEach(electron => electron.remove());
+
+    // Add electrons orbiting in 3D around the nucleus
+    const shellDistances = [60, 90, 120]; // Distances of electron shells from the nucleus
+    let electronsPerShell = [2, 8, 18]; // Max electrons per shell
+    let totalElectrons = ion.electrons;
+
+    for (let shell = 0; shell < shellDistances.length && totalElectrons > 0; shell++) {
+        const electronsInThisShell = Math.min(totalElectrons, electronsPerShell[shell]);
+
+        for (let i = 0; i < electronsInThisShell; i++) {
+            const electron = document.createElement('div');
+            electron.className = 'electron';
+            electron.style.setProperty('--orbit-radius', `${shellDistances[shell]}px`);
+            electron.style.animation = `orbit3D ${Math.random() * 4 + 3}s linear infinite`;
+            electron.style.animationDelay = `${Math.random()}s`;
+
+            animation.appendChild(electron);
+        }
+        totalElectrons -= electronsInThisShell;
+    }
+}
+
+function getRandomPositionInCircle(radius) {
+    const angle = Math.random() * 2 * Math.PI;
+    const distance = Math.sqrt(Math.random()) * radius; // Ensures uniform distribution
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    return { x, y };
+}
+
+function formCompound() {
+    const selectedIons = ions.filter(ion => document.getElementById(`compound-checkbox-${ion.id}`).checked);
+    if (selectedIons.length < 2) {
+        alert('Please select at least two ions to form a compound.');
+        return;
+    }
+
+    // Confirmation pop-up
+    const compoundName = selectedIons.map(ion => ion.elementName).join(' + ');
+    const confirmation = confirm(`Are you sure you want to form a compound with the following ions: ${compoundName}?`);
+
+    if (!confirmation) {
+        alert('Compound formation canceled.');
+        return;
+    }
+
+    // Calculate total protons, neutrons, and electrons for the compound
+    const totalProtons = selectedIons.reduce((sum, ion) => sum + ion.protons, 0);
+    const totalNeutrons = selectedIons.reduce((sum, ion) => sum + ion.neutrons, 0);
+    const totalElectrons = selectedIons.reduce((sum, ion) => sum + ion.electrons, 0);
+    const netCharge = selectedIons.reduce((sum, ion) => sum + ion.charge, 0);
+
+    // Create compound visualization container
+    const compoundContainer = document.createElement('div');
+    compoundContainer.className = 'ion-container';
+    compoundContainer.innerHTML = `
+        <div>
+            <h3>Compound: ${compoundName}</h3>
+            <div id="compound-animation" class="ion-animation">
+                <div class="nucleus"></div>
+            </div>
+        </div>
+        <div>
+            <div id="compound-info">
+                <p>Total Protons: ${totalProtons}</p>
+                <p>Total Neutrons: ${totalNeutrons}</p>
+                <p>Total Electrons: ${totalElectrons}</p>
+                <p>Net Charge: ${netCharge}</p>
+            </div>
+        </div>
+    `;
+    document.getElementById('ions-container').appendChild(compoundContainer);
+
+    // Animate the compound: Apply the same logic for protons, neutrons, and electron orbits
+    updateCompoundAnimation(compoundContainer, totalProtons, totalNeutrons, totalElectrons, netCharge);
+}
+
+const elements = [
+    {symbol: 'H', name: 'Hydrogen', number: 1, protons: 1, neutrons: 0, family: 'Nonmetal'},
+    {symbol: 'He', name: 'Helium', number: 2, protons: 2, neutrons: 2, family: 'Noble Gas'},
+    {symbol: 'Li', name: 'Lithium', number: 3, protons: 3, neutrons: 4, family: 'Alkali Metal'},
+    {symbol: 'Be', name: 'Beryllium', number: 4, protons: 4, neutrons: 5, family: 'Alkaline Earth Metal'},
+    {symbol: 'B', name: 'Boron', number: 5, protons: 5, neutrons: 6, family: 'Metalloid'},
+    {symbol: 'C', name: 'Carbon', number: 6, protons: 6, neutrons: 6, family: 'Nonmetal'},
+    {symbol: 'N', name: 'Nitrogen', number: 7, protons: 7, neutrons: 7, family: 'Nonmetal'},
+    {symbol: 'O', name: 'Oxygen', number: 8, protons: 8, neutrons: 8, family: 'Nonmetal'},
+    {symbol: 'F', name: 'Fluorine', number: 9, protons: 9, neutrons: 10, family: 'Halogen'},
+    {symbol: 'Ne', name: 'Neon', number: 10, protons: 10, neutrons: 10, family: 'Noble Gas'},
+    {symbol: 'Na', name: 'Sodium', number: 11, protons: 11, neutrons: 12, family: 'Alkali Metal'},
+    {symbol: 'Mg', name: 'Magnesium', number: 12, protons: 12, neutrons: 12, family: 'Alkaline Earth Metal'},
+    {symbol: 'Al', name: 'Aluminum', number: 13, protons: 13, neutrons: 14, family: 'Post-Transition Metal'},
+    {symbol: 'Si', name: 'Silicon', number: 14, protons: 14, neutrons: 14, family: 'Metalloid'},
+    {symbol: 'P', name: 'Phosphorus', number: 15, protons: 15, neutrons: 16, family: 'Nonmetal'},
+    {symbol: 'S', name: 'Sulfur', number: 16, protons: 16, neutrons: 16, family: 'Nonmetal'},
+    {symbol: 'Cl', name: 'Chlorine', number: 17, protons: 17, neutrons: 18, family: 'Halogen'},
+    {symbol: 'Ar', name: 'Argon', number: 18, protons: 18, neutrons: 22, family: 'Noble Gas'},
+    {symbol: 'K', name: 'Potassium', number: 19, protons: 19, neutrons: 20, family: 'Alkali Metal'},
+    {symbol: 'Ca', name: 'Calcium', number: 20, protons: 20, neutrons: 20, family: 'Alkaline Earth Metal'},
+    {symbol: 'Sc', name: 'Scandium', number: 21, protons: 21, neutrons: 24, family: 'Transition Metal'},
+    {symbol: 'Ti', name: 'Titanium', number: 22, protons: 22, neutrons: 26, family: 'Transition Metal'},
+    {symbol: 'V', name: 'Vanadium', number: 23, protons: 23, neutrons: 28, family: 'Transition Metal'},
+    {symbol: 'Cr', name: 'Chromium', number: 24, protons: 24, neutrons: 28, family: 'Transition Metal'},
+    {symbol: 'Mn', name: 'Manganese', number: 25, protons: 25, neutrons: 30, family: 'Transition Metal'},
+    {symbol: 'Fe', name: 'Iron', number: 26, protons: 26, neutrons: 30, family: 'Transition Metal'},
+    {symbol: 'Co', name: 'Cobalt', number: 27, protons: 27, neutrons: 32, family: 'Transition Metal'},
+    {symbol: 'Ni', name: 'Nickel', number: 28, protons: 28, neutrons: 31, family: 'Transition Metal'},
+    {symbol: 'Cu', name: 'Copper', number: 29, protons: 29, neutrons: 35, family: 'Transition Metal'},
+    {symbol: 'Zn', name: 'Zinc', number: 30, protons: 30, neutrons: 35, family: 'Transition Metal'},
+    {symbol: 'Ga', name: 'Gallium', number: 31, protons: 31, neutrons: 39, family: 'Post-Transition Metal'},
+    {symbol: 'Ge', name: 'Germanium', number: 32, protons: 32, neutrons: 41, family: 'Metalloid'},
+    {symbol: 'As', name: 'Arsenic', number: 33, protons: 33, neutrons: 42, family: 'Metalloid'},
+    {symbol: 'Se', name: 'Selenium', number: 34, protons: 34, neutrons: 45, family: 'Nonmetal'},
+    {symbol: 'Br', name: 'Bromine', number: 35, protons: 35, neutrons: 45, family: 'Halogen'},
+    {symbol: 'Kr', name: 'Krypton', number: 36, protons: 36, neutrons: 48, family: 'Noble Gas'},
+    {symbol: 'Rb', name: 'Rubidium', number: 37, protons: 37, neutrons: 48, family: 'Alkali Metal'},
+    {symbol: 'Sr', name: 'Strontium', number: 38, protons: 38, neutrons: 50, family: 'Alkaline Earth Metal'},
+    {symbol: 'Y', name: 'Yttrium', number: 39, protons: 39, neutrons: 50, family: 'Transition Metal'},
+    {symbol: 'Zr', name: 'Zirconium', number: 40, protons: 40, neutrons: 51, family: 'Transition Metal'},
+    {symbol: 'Nb', name: 'Niobium', number: 41, protons: 41, neutrons: 52, family: 'Transition Metal'},
+    {symbol: 'Mo', name: 'Molybdenum', number: 42, protons: 42, neutrons: 54, family: 'Transition Metal'},
+    {symbol: 'Tc', name: 'Technetium', number: 43, protons: 43, neutrons: 55, family: 'Transition Metal'},
+    {symbol: 'Ru', name: 'Ruthenium', number: 44, protons: 44, neutrons: 57, family: 'Transition Metal'},
+    {symbol: 'Rh', name: 'Rhodium', number: 45, protons: 45, neutrons: 58, family: 'Transition Metal'},
+    {symbol: 'Pd', name: 'Palladium', number: 46, protons: 46, neutrons: 60, family: 'Transition Metal'},
+    {symbol: 'Ag', name: 'Silver', number: 47, protons: 47, neutrons: 61, family: 'Transition Metal'},
+    {symbol: 'Cd', name: 'Cadmium', number: 48, protons: 48, neutrons: 64, family: 'Transition Metal'},
+    {symbol: 'In', name: 'Indium', number: 49, protons: 49, neutrons: 66, family: 'Post-Transition Metal'},
+    {symbol: 'Sn', name: 'Tin', number: 50, protons: 50, neutrons: 69, family: 'Post-Transition Metal'},
+    {symbol: 'Sb', name: 'Antimony', number: 51, protons: 51, neutrons: 71, family: 'Metalloid'},
+    {symbol: 'Te', name: 'Tellurium', number: 52, protons: 52, neutrons: 76, family: 'Metalloid'},
+    {symbol: 'I', name: 'Iodine', number: 53, protons: 53, neutrons: 74, family: 'Halogen'},
+    {symbol: 'Xe', name: 'Xenon', number: 54, protons: 54, neutrons: 77, family: 'Noble Gas'},
+    {symbol: 'Cs', name: 'Cesium', number: 55, protons: 55, neutrons: 78, family: 'Alkali Metal'},
+    {symbol: 'Ba', name: 'Barium', number: 56, protons: 56, neutrons: 81, family: 'Alkaline Earth Metal'},
+    {symbol: 'La', name: 'Lanthanum', number: 57, protons: 57, neutrons: 82, family: 'Lanthanide'},
+    {symbol: 'Ce', name: 'Cerium', number: 58, protons: 58, neutrons: 82, family: 'Lanthanide'},
+    {symbol: 'Pr', name: 'Praseodymium', number: 59, protons: 59, neutrons: 82, family: 'Lanthanide'},
+    {symbol: 'Nd', name: 'Neodymium', number: 60, protons: 60, neutrons: 84, family: 'Lanthanide'},
+    {symbol: 'Pm', name: 'Promethium', number: 61, protons: 61, neutrons: 84, family: 'Lanthanide'},
+    {symbol: 'Sm', name: 'Samarium', number: 62, protons: 62, neutrons: 88, family: 'Lanthanide'},
+    {symbol: 'Eu', name: 'Europium', number: 63, protons: 63, neutrons: 89, family: 'Lanthanide'},
+    {symbol: 'Gd', name: 'Gadolinium', number: 64, protons: 64, neutrons: 93, family: 'Lanthanide'},
+    {symbol: 'Tb', name: 'Terbium', number: 65, protons: 65, neutrons: 94, family: 'Lanthanide'},
+    {symbol: 'Dy', name: 'Dysprosium', number: 66, protons: 66, neutrons: 97, family: 'Lanthanide'},
+    {symbol: 'Ho', name: 'Holmium', number: 67, protons: 67, neutrons: 98, family: 'Lanthanide'},
+    {symbol: 'Er', name: 'Erbium', number: 68, protons: 68, neutrons: 99, family: 'Lanthanide'},
+    {symbol: 'Tm', name: 'Thulium', number: 69, protons: 69, neutrons: 100, family: 'Lanthanide'},
+    {symbol: 'Yb', name: 'Ytterbium', number: 70, protons: 70, neutrons: 103, family: 'Lanthanide'},
+    {symbol: 'Lu', name: 'Lutetium', number: 71, protons: 71, neutrons: 104, family: 'Lanthanide'},
+    {symbol: 'Hf', name: 'Hafnium', number: 72, protons: 72, neutrons: 106, family: 'Transition Metal'},
+    {symbol: 'Ta', name: 'Tantalum', number: 73, protons: 73, neutrons: 108, family: 'Transition Metal'},
+    {symbol: 'W', name: 'Tungsten', number: 74, protons: 74, neutrons: 110, family: 'Transition Metal'},
+    {symbol: 'Re', name: 'Rhenium', number: 75, protons: 75, neutrons: 111, family: 'Transition Metal'},
+    {symbol: 'Os', name: 'Osmium', number: 76, protons: 76, neutrons: 114, family: 'Transition Metal'},
+    {symbol: 'Ir', name: 'Iridium', number: 77, protons: 77, neutrons: 115, family: 'Transition Metal'},
+    {symbol: 'Pt', name: 'Platinum', number: 78, protons: 78, neutrons: 117, family: 'Transition Metal'},
+    {symbol: 'Au', name: 'Gold', number: 79, protons: 79, neutrons: 118, family: 'Transition Metal'},
+    {symbol: 'Hg', name: 'Mercury', number: 80, protons: 80, neutrons: 121, family: 'Transition Metal'},
+    {symbol: 'Tl', name: 'Thallium', number: 81, protons: 81, neutrons: 123, family: 'Post-Transition Metal'},
+    {symbol: 'Pb', name: 'Lead', number: 82, protons: 82, neutrons: 125, family: 'Post-Transition Metal'},
+    {symbol: 'Bi', name: 'Bismuth', number: 83, protons: 83, neutrons: 126, family: 'Post-Transition Metal'},
+    {symbol: 'Po', name: 'Polonium', number: 84, protons: 84, neutrons: 125, family: 'Metalloid'},
+    {symbol: 'At', name: 'Astatine', number: 85, protons: 85, neutrons: 125, family: 'Halogen'},
+    {symbol: 'Rn', name: 'Radon', number: 86, protons: 86, neutrons: 136, family: 'Noble Gas'},
+    {symbol: 'Fr', name: 'Francium', number: 87, protons: 87, neutrons: 136, family: 'Alkali Metal'},
+    {symbol: 'Ra', name: 'Radium', number: 88, protons: 88, neutrons: 138, family: 'Alkaline Earth Metal'},
+    {symbol: 'Ac', name: 'Actinium', number: 89, protons: 89, neutrons: 138, family: 'Actinide'},
+    {symbol: 'Th', name: 'Thorium', number: 90, protons: 90, neutrons: 142, family: 'Actinide'},
+    {symbol: 'Pa', name: 'Protactinium', number: 91, protons: 91, neutrons: 140, family: 'Actinide'},
+    {symbol: 'U', name: 'Uranium', number: 92, protons: 92, neutrons: 146, family: 'Actinide'},
+    {symbol: 'Np', name: 'Neptunium', number: 93, protons: 93, neutrons: 144, family: 'Actinide'},
+    {symbol: 'Pu', name: 'Plutonium', number: 94, protons: 94, neutrons: 150, family: 'Actinide'},
+    {symbol: 'Am', name: 'Americium', number: 95, protons: 95, neutrons: 148, family: 'Actinide'},
+    {symbol: 'Cm', name: 'Curium', number: 96, protons: 96, neutrons: 151, family: 'Actinide'},
+    {symbol: 'Bk', name: 'Berkelium', number: 97, protons: 97, neutrons: 150, family: 'Actinide'},
+    {symbol: 'Cf', name: 'Californium', number: 98, protons: 98, neutrons: 153, family: 'Actinide'},
+    {symbol: 'Es', name: 'Einsteinium', number: 99, protons: 99, neutrons: 153, family: 'Actinide'},
+    {symbol: 'Fm', name: 'Fermium', number: 100, protons: 100, neutrons: 157, family: 'Actinide'},
+    {symbol: 'Md', name: 'Mendelevium', number: 101, protons: 101, neutrons: 157, family: 'Actinide'},
+    {symbol: 'No', name: 'Nobelium', number: 102, protons: 102, neutrons: 157, family: 'Actinide'},
+    {symbol: 'Lr', name: 'Lawrencium', number: 103, protons: 103, neutrons: 159, family: 'Actinide'},
+    {symbol: 'Rf', name: 'Rutherfordium', number: 104, protons: 104, neutrons: 157, family: 'Transition Metal'},
+    {symbol: 'Db', name: 'Dubnium', number: 105, protons: 105, neutrons: 157, family: 'Transition Metal'},
+    {symbol: 'Sg', name: 'Seaborgium', number: 106, protons: 106, neutrons: 160, family: 'Transition Metal'},
+    {symbol: 'Bh', name: 'Bohrium', number: 107, protons: 107, neutrons: 157, family: 'Transition Metal'},
+    {symbol: 'Hs', name: 'Hassium', number: 108, protons: 108, neutrons: 169, family: 'Transition Metal'},
+    {symbol: 'Mt', name: 'Meitnerium', number: 109, protons: 109, neutrons: 157, family: 'Unknown'},
+    {symbol: 'Ds', name: 'Darmstadtium', number: 110, protons: 110, neutrons: 157, family: 'Unknown'},
+    {symbol: 'Rg', name: 'Roentgenium', number: 111, protons: 111, neutrons: 157, family: 'Unknown'},
+    {symbol: 'Cn', name: 'Copernicium', number: 112, protons: 112, neutrons: 173, family: 'Transition Metal'},
+    {symbol: 'Nh', name: 'Nihonium', number: 113, protons: 113, neutrons: 173, family: 'Unknown'},
+    {symbol: 'Fl', name: 'Flerovium', number: 114, protons: 114, neutrons: 175, family: 'Unknown'},
+    {symbol: 'Mc', name: 'Moscovium', number: 115, protons: 115, neutrons: 175, family: 'Unknown'},
+    {symbol: 'Lv', name: 'Livermorium', number: 116, protons: 116, neutrons: 177, family: 'Unknown'},
+    {symbol: 'Ts', name: 'Tennessine', number: 117, protons: 117, neutrons: 177, family: 'Unknown'},
+    {symbol: 'Og', name: 'Oganesson', number: 118, protons: 118, neutrons: 176, family: 'Unknown'}
+];
+
+
+    function generatePeriodicTable() {
+        const table = document.getElementById('periodic-table');
+        elements.forEach(element => {
+            const el = document.createElement('div');
+            el.className = 'element';
+            el.innerText = element.symbol;
+            el.onclick = () => {
+                const selectedRadio = document.querySelector('input[name="selected-ion"]:checked');
+                if (selectedRadio) {
+                    selectedIonId = parseInt(selectedRadio.value);
+                    selectElementForIon(element);
+                } else {
+                    alert('Please select an ion using the radio buttons.');
+                }
+            };
+            table.appendChild(el);
+        });
+    }
+
+function selectElementForIon(element) {
+    if (selectedIonId === null) {
+        alert('Please select an ion using the radio buttons.');
+        return;
+    }
+
+    const ion = ions[selectedIonId];
+
+    // Set the ion's element properties based on the selected element
+    ion.elementName = element.name;
+    ion.elementFamily = element.family;
+
+    // Update protons, neutrons, and electrons
+    ion.protons = element.number;
+    ion.neutrons = element.neutrons;
+    ion.electrons = element.number + ion.charge; // Electrons depend on charge
+
+    updateIonInfo(selectedIonId); // Ensure the UI is updated
+}
+
+</script>
+
+</body>
+</html>
